@@ -1,0 +1,8 @@
+tests
+manzi
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+api_keys.py
+Spark/.ipynb_checkpoints/
+twitter/*.pyc
