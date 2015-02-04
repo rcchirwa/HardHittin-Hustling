@@ -11,10 +11,6 @@ from mock import patch, mock_open, MagicMock
 
 
 class MyTest(unittest.TestCase):
-    '''def setUp(self):
-        self.row_form_board = self.get_data_from_dat("board_as_rows.dat")
-        self.flat_board = self.get_data_from_dat("board_as_series.dat")'''
-
     def get_data_from_dat(self, file_name):
         file_path = os.path.join('unitest_data', file_name)
         with open(file_path, "rb") as f:
