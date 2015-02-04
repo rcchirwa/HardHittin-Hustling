@@ -2,7 +2,8 @@ from twitterAPI import (get_twitter_user_by_screenname,
                         get_twitter_user_followers_count,
                         get_twitter_users_by_ids,
                         get_chunked_twiiter_users_by_ids,
-                        get_bulk_users_by_ids)
+                        get_bulk_users_by_ids,
+                        get_authentication)
 import tweepy
 import unittest
 import pickle
@@ -11,15 +12,24 @@ from mock import patch, mock_open, MagicMock
 
 
 class MyTest(unittest.TestCase):
-    '''def setUp(self):
-        self.row_form_board = self.get_data_from_dat("board_as_rows.dat")
-        self.flat_board = self.get_data_from_dat("board_as_series.dat")'''
+    @patch('tweepy.OAuthHandler')
+    @patch('tweepy.API')
+    @patch('twitterAPI.logger')
+    def test_get_authentication(self, mock_logger, mock_api,
+                                mock_oauth):
 
-    def get_data_from_dat(self, file_name):
-        file_path = os.path.join('unitest_data', file_name)
-        with open(file_path, "rb") as f:
-            data = pickle.load(f)
-        return data
+        fake_keys = dict(access_token="access_token",
+                         access_token_secret="access_token_secret",
+                         consumer_key="consumer_key",
+                         consumer_secret="consumer_secret")
+        get_authentication(fake_keys)
+
+        mock_oauth.assert_called_once_with("consumer_key",
+                                           "consumer_secret")
+        mock_oauth.return_value.set_access_token.assert_called_once_with(
+            "access_token", "access_token_secret")
+        mock_api.assert_called_once()
+        self.assertEqual(mock_logger.info.call_count, 2)
 
     @patch('tweepy.API')
     def test_get_twitter_user_by_screenname(self, tweepy_mock):
