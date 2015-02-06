@@ -9,6 +9,10 @@ import tweepy
 from model import User
 
 
+def get_epochalypse_now():
+    return int(time.time())
+
+
 def get_authentication(twitter_keys):
     logger.info('Attempt Twitter Authentication')
     access_token = twitter_keys['access_token']
@@ -31,7 +35,7 @@ def get_rate_limit(api, resource, path):
     request_window_reset_time = rate_limit_resource_path['reset']
     requests_remaining_in_window = rate_limit_resource_path['remaining']
 
-    epochalpse_now = int(time.time())
+    epochalpse_now = get_epochalypse_now()
 
     time_delta = (request_window_reset_time-epochalpse_now)
 
@@ -44,12 +48,26 @@ def get_rate_limit(api, resource, path):
             requests_remaining_in_window, request_window_reset_time)
 
 
+def get_cursor_twitter_rate_limit(api, screen_name, cursor_size):
+    multiple_iterations = False
+    api_followers_count = get_twitter_user_followers_count(api, screen_name)
+
+    iterations = api_followers_count/cursor_size + 1
+    sleep_time = 0
+
+    if iterations > 1:
+        sleep_time, _, _ = get_rate_limit(api, 'followers', '/followers/ids')
+        multiple_iterations = True
+
+    return iterations, multiple_iterations, sleep_time
+
+
 def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
     logger.info("get the followers for %s", screen_name)
     extracted_user_ids = []
     requested_used = 0
 
-    #  tricky way to get math.ceil
+    '''#  tricky way to get math.ceil
     multiple_iterations = False
     api_followers_count = get_twitter_user_followers_count(api, screen_name)
 
@@ -57,7 +75,9 @@ def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
 
     if iterations > 1:
         sleep_time, _, _ = get_rate_limit(api, 'followers', '/followers/ids')
-        multiple_iterations = True
+        multiple_iterations = True'''
+
+    iterations, multiple_iterations, sleep_time = get_cursor_twitter_rate_limit(api, screen_name, cursor_size)
 
     try:
         #  5000 count returned
