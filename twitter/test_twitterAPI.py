@@ -3,15 +3,31 @@ from twitterAPI import (get_twitter_user_by_screenname,
                         get_twitter_users_by_ids,
                         get_chunked_twiiter_users_by_ids,
                         get_bulk_users_by_ids,
-                        get_authentication)
+                        get_authentication,
+                        get_epochalypse_now,
+                        get_api_reset_time_and_requests_remaining)
 import tweepy
 import unittest
 import pickle
 import os
+import json
+import time
 from mock import patch, mock_open, MagicMock
 
 
 class MyTest(unittest.TestCase):
+    def get_data_from_json(self, file_name):
+        import os
+        print os.listdir(".")
+        file_path = os.path.join('twitter','test_data', file_name)
+        with open(file_path, "rb") as f:
+            data = json.loads(f.read())
+        return data
+
+    def test_getepochalypse_now(self):
+        epochalypse_now = get_epochalypse_now()
+        self.assertAlmostEqual(int(time.time()), epochalypse_now)
+
     @patch('tweepy.OAuthHandler')
     @patch('tweepy.API')
     @patch('twitterAPI.logger')
@@ -30,6 +46,26 @@ class MyTest(unittest.TestCase):
             "access_token", "access_token_secret")
         mock_api.assert_called_once()
         self.assertEqual(mock_logger.info.call_count, 2)
+
+
+    @patch('tweepy.API')
+    def test_get_api_reset_time_and_requests_remaining(self,
+        mock_api):
+        resource = 'followers' 
+        path = '/followers/ids'
+        json_from_api = self.get_data_from_json("api_limit_status.json")
+
+        mock_api.rate_limit_status.return_value = json_from_api
+        limit_info = {u'reset': 1423182262,
+            u'limit': 15, u'remaining': 4} 
+        request_window_reset_time, requests_remaining_in_window =\
+        get_api_reset_time_and_requests_remaining(mock_api,
+            resource, 
+            path)
+
+        self.assertEqual(request_window_reset_time, limit_info['reset'])
+        self.assertEqual(requests_remaining_in_window, limit_info['remaining'])
+
 
     @patch('tweepy.API')
     def test_get_twitter_user_by_screenname(self, tweepy_mock):
