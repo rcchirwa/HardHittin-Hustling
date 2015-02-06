@@ -29,12 +29,17 @@ def get_authentication(twitter_keys):
     return api
 
 
-def get_rate_limit(api, resource, path):
+def get_api_reset_time_and_requests_remaining(api, resource, path):
     rate_limit_json = api.rate_limit_status()
     rate_limit_resource_path = rate_limit_json['resources'][resource][path]
     request_window_reset_time = rate_limit_resource_path['reset']
     requests_remaining_in_window = rate_limit_resource_path['remaining']
+    return request_window_reset_time, requests_remaining_in_window
 
+
+def get_rate_limit(api, resource, path):
+    request_window_reset_time, requests_remaining_in_window =\
+        get_api_reset_time_and_requests_remaining(api, resource, path)
     epochalpse_now = get_epochalypse_now()
 
     time_delta = (request_window_reset_time-epochalpse_now)
@@ -67,17 +72,8 @@ def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
     extracted_user_ids = []
     requested_used = 0
 
-    '''#  tricky way to get math.ceil
-    multiple_iterations = False
-    api_followers_count = get_twitter_user_followers_count(api, screen_name)
-
-    iterations = api_followers_count/cursor_size + 1
-
-    if iterations > 1:
-        sleep_time, _, _ = get_rate_limit(api, 'followers', '/followers/ids')
-        multiple_iterations = True'''
-
-    iterations, multiple_iterations, sleep_time = get_cursor_twitter_rate_limit(api, screen_name, cursor_size)
+    iterations, multiple_iterations, sleep_time =\
+        get_cursor_twitter_rate_limit(api, screen_name, cursor_size)
 
     try:
         #  5000 count returned
