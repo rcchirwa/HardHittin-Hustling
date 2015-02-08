@@ -1,4 +1,5 @@
-from twitterAPI import (get_twitter_user_by_screenname,
+from nose.tools import *
+from twitter.twitterAPI import (get_twitter_user_by_screenname,
                         get_twitter_user_followers_count,
                         get_twitter_users_by_ids,
                         get_chunked_twiiter_users_by_ids,
@@ -6,7 +7,7 @@ from twitterAPI import (get_twitter_user_by_screenname,
                         get_authentication,
                         get_epochalypse_now,
                         get_api_reset_time_and_requests_remaining)
-import tweepy
+#import tweepy
 import unittest
 import pickle
 import os
@@ -19,7 +20,7 @@ class MyTest(unittest.TestCase):
     def get_data_from_json(self, file_name):
         import os
         print os.listdir(".")
-        file_path = os.path.join('twitter','test_data', file_name)
+        file_path = os.path.join('tests','test_data', file_name)
         with open(file_path, "rb") as f:
             data = json.loads(f.read())
         return data
@@ -30,7 +31,7 @@ class MyTest(unittest.TestCase):
 
     @patch('tweepy.OAuthHandler')
     @patch('tweepy.API')
-    @patch('twitterAPI.logger')
+    @patch('twitter.twitterAPI.logger')
     def test_get_authentication(self, mock_logger, mock_api,
                                 mock_oauth):
 
@@ -94,8 +95,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(iterator.next(), range(13, 17))
         self.assertEqual(iterator.next(), range(17, 21))
 
-    @patch('twitterAPI.get_twitter_users_by_ids')
-    @patch('twitterAPI.get_chunked_twiiter_users_by_ids')
+    @patch('twitter.twitterAPI.get_twitter_users_by_ids')
+    @patch('twitter.twitterAPI.get_chunked_twiiter_users_by_ids')
     @patch('tweepy.API')
     def test_get_bulk_users_by_ids(self, tweepy_mock, mocked_chunked,
                                    mocked_get_user):

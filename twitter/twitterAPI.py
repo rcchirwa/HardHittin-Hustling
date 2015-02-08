@@ -100,12 +100,25 @@ def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
 
 
 def get_twitter_user_by_screenname(api, screen_name):
-    return api.get_user(screen_name)
+    try:
+        return api.get_user(screen_name)
+    except Exception, e:
+        user = User.flag_suspect_profile(screen_name)
+        print user
+        logger.error("failed Error for the screenname: %s ", screen_name)
+        logger.error(str(e))
+        User.flag_suspect_profile(screen_name)
 
 
 def get_twitter_user_followers_count(api, screen_name):
-    return api.get_user(screen_name).followers_count
-
+    try:
+        return api.get_user(screen_name).followers_count
+    except Exception, e:
+        user = User.flag_suspect_profile(screen_name)
+        print user
+        logger.error("failed Error for the screenname: %s ", screen_name)
+        logger.error(str(e))
+        User.flag_suspect_profile(screen_name)
 
 def get_twitter_users_by_ids(api, ids):
     return api.lookup_users(user_ids=ids)

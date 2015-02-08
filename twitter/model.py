@@ -31,12 +31,15 @@ class User(Document):
     followers_ids = ListField()
     common_followers = ListField()
 
+    suspect_profile = BooleanField(default=False)
+
     date_modified = DateTimeField(default=datetime.datetime.now)
 
     @classmethod
     def get_twiiter_users_without_followers(cls, cut_off=20000):
         filtered_users = cls.objects(followers_count__lte=cut_off,
-                                     protected=False, followers_ids=[])
+                                     protected=False, followers_ids=[],
+                                     suspect_profile__ne=True)
         users_without_followers = filtered_users.scalar('screen_name')
         return users_without_followers
 
@@ -51,6 +54,18 @@ class User(Document):
     def get_followers(cls, screen_name):
         identified_user = cls.objects(screen_name=screen_name).first()
         return identified_user.followers_ids
+
+    @classmethod
+    def flag_suspect_profile(cls, screen_name):
+        identified_user = cls.objects(screen_name=screen_name).first()
+        identified_user.suspect_profile = True
+        identified_user.save()
+
+    @classmethod
+    def is_suspect_profile(cls, screen_name):
+        identified_user = cls.objects(screen_name=screen_name).first()
+        return identified_user.suspect_profile
+
 
     @classmethod
     def create_user_profile_from_api_response(cls, twitter_user):
