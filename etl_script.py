@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import time
 
 import twitter.api_keys as twitter_keys
@@ -21,7 +22,7 @@ tweepy_user = api.get_user(screen_name)
 
 user = User.create_user_profile_from_api_response(tweepy_user)
 
-# user.save()
+user.save()
 
 #  Get the artist followers then create the user profiles
 followers, requests_used = get_followers_by_screen_name(api, screen_name)
@@ -30,8 +31,8 @@ User.set_followers(screen_name, followers)
 
 followers = User.get_followers(screen_name)
 
-# for users in get_bulk_users_by_ids(api, followers, 100):
-#    User.bulk_create_and_save_users_from_api_reponse(users)
+for users in get_bulk_users_by_ids(api, followers, 100):
+   User.bulk_create_and_save_users_from_api_reponse(users)
 
 # get all the user who do not have followers
 no_followers = list(User.get_twiiter_users_without_followers())
