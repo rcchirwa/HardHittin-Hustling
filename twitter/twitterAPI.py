@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import tweepy
-from model import User
+from model import User as User
 
 
 def get_epochalypse_now():
@@ -140,3 +140,11 @@ def get_bulk_users_by_ids(api, ids, batch_size=100):
     for chunked_ids in get_chunked_twiiter_users_by_ids(ids, batch_size):
         users = get_twitter_users_by_ids(api, chunked_ids)
         yield users
+
+def get_new_followers_user_profiles(api, user_screen_name):
+    users_followers = User.objects(screen_name=user_screen_name).get()
+    user_ids = User.objects().scalar('user_id')
+    ids_to_populate = list(set(users_followers.followers_ids).difference(user_ids))
+
+    for user in get_bulk_users_by_ids(api, ids_to_populate, 100):
+        User.bulk_create_and_save_users_from_api_reponse(user)

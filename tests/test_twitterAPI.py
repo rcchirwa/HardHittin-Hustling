@@ -6,7 +6,8 @@ from twitter.twitterAPI import (get_twitter_user_by_screenname,
                         get_bulk_users_by_ids,
                         get_authentication,
                         get_epochalypse_now,
-                        get_api_reset_time_and_requests_remaining)
+                        get_api_reset_time_and_requests_remaining,
+                        get_new_followers_user_profiles)
 #import tweepy
 import unittest
 import pickle
@@ -14,6 +15,7 @@ import os
 import json
 import time
 from mock import patch, mock_open, MagicMock
+from twitter.model import User as MongoUser
 
 
 class MyTest(unittest.TestCase):
@@ -111,6 +113,21 @@ class MyTest(unittest.TestCase):
         iterator = get_bulk_users_by_ids(tweepy_mock, full_range, batch_size=6)
         self.assertEqual(iterator.next(), subset3)
         self.assertEqual(iterator.next(), subset4)
+
+    @patch('twitter.twitterAPI.User')
+    @patch('twitter.twitterAPI.get_bulk_users_by_ids')
+    @patch('tweepy.API')
+    def test_get_new_followers_user_profiles(self, tweepy_mock, mocked_get_balk, 
+                                       user):
+
+        user.objects.return_value.get.return_value = MongoUser(followers_ids = range(1,201))
+        user.objects.return_value.scalar.return_value = range(1,101)
+        get_new_followers_user_profiles(tweepy_mock, "wiz")
+
+        user.objects.return_value.get.assert_called_with()
+        user.objects.return_value.scalar.assert_called_with("user_id")
+        mocked_get_balk.assert_called_once_with(tweepy_mock, range(101,201),100)
+
 
 if __name__ == '__main__':
     unittest.main()
