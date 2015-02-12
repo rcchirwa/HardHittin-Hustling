@@ -1,15 +1,15 @@
 from nose.tools import *
 from twitter.twitterAPI import (get_twitter_user_by_screenname,
-                        get_twitter_user_followers_count,
-                        get_twitter_users_by_ids,
-                        get_chunked_twiiter_users_by_ids,
-                        get_bulk_users_by_ids,
-                        get_authentication,
-                        get_epochalypse_now,
-                        get_api_reset_time_and_requests_remaining,
-                        get_new_followers_user_profiles,
-                        get_followers_by_screen_name)
-#import tweepy
+                                get_twitter_user_followers_count,
+                                get_twitter_users_by_ids,
+                                get_chunked_twiiter_users_by_ids,
+                                get_bulk_users_by_ids,
+                                get_authentication,
+                                get_epochalypse_now,
+                                get_api_reset_time_and_requests_remaining,
+                                get_new_followers_user_profiles,
+                                get_followers_by_screen_name,
+                                get_rate_limit)
 import unittest
 import pickle
 import os
@@ -19,11 +19,12 @@ from mock import patch, mock_open, MagicMock
 from twitter.model import User as MongoUser
 from tweepy.error import TweepError
 
+
 class MyTest(unittest.TestCase):
     def get_data_from_json(self, file_name):
         import os
         print os.listdir(".")
-        file_path = os.path.join('tests','test_data', file_name)
+        file_path = os.path.join('tests', 'test_data', file_name)
         with open(file_path, "rb") as f:
             data = json.loads(f.read())
         return data
@@ -51,25 +52,71 @@ class MyTest(unittest.TestCase):
         mock_api.assert_called_once()
         self.assertEqual(mock_logger.info.call_count, 2)
 
-
     @patch('tweepy.API')
-    def test_get_api_reset_time_and_requests_remaining(self,
-        mock_api):
-        resource = 'followers' 
+    def test_get_api_reset_time_and_requests_remaining(self, mock_api):
+        resource = 'followers'
         path = '/followers/ids'
         json_from_api = self.get_data_from_json("api_limit_status.json")
 
         mock_api.rate_limit_status.return_value = json_from_api
         limit_info = {u'reset': 1423182262,
-            u'limit': 15, u'remaining': 4} 
+                      u'limit': 15, u'remaining': 4}
         request_window_reset_time, requests_remaining_in_window =\
-        get_api_reset_time_and_requests_remaining(mock_api,
-            resource, 
-            path)
+            get_api_reset_time_and_requests_remaining(mock_api,
+                                                      resource,
+                                                      path)
 
         self.assertEqual(request_window_reset_time, limit_info['reset'])
         self.assertEqual(requests_remaining_in_window, limit_info['remaining'])
 
+    @patch('twitter.twitterAPI.get_epochalypse_now')
+    @patch('twitter.twitterAPI.get_api_reset_time_and_requests_remaining')
+    @patch('tweepy.API')
+    def test_get_rate_limit_with_requests_remaining(self, api_mock,
+                                                    mock_remaining,
+                                                    mock_epoch):
+        resource = 'followers'
+        path = '/followers/ids'
+        json_from_api = self.get_data_from_json("api_limit_status.json")
+
+        rate_limit_resource_path = json_from_api['resources'][resource][path]
+        request_window_reset_time = rate_limit_resource_path['reset']
+        requests_remaining_in_window = 15
+        time_delta = 60*requests_remaining_in_window
+        mock_epoch.return_value = request_window_reset_time - time_delta
+        mock_remaining.return_value = (request_window_reset_time,
+                                       requests_remaining_in_window)
+        interval_between_requests1, requests_remaining_in_window1,  request_window_reset_time1 =\
+            get_rate_limit(api_mock, resource, path)
+
+        self.assertEqual(60, interval_between_requests1)
+        self.assertEqual(requests_remaining_in_window,
+                         requests_remaining_in_window1)
+        self.assertEqual(request_window_reset_time, request_window_reset_time1)
+
+    @patch('twitter.twitterAPI.get_epochalypse_now')
+    @patch('twitter.twitterAPI.get_api_reset_time_and_requests_remaining')
+    @patch('tweepy.API')
+    def test_get_rate_limit_without_requests_remaining(self, api_mock,
+                                                       mock_remaining,
+                                                       mock_epoch):
+        resource = 'followers'
+        path = '/followers/ids'
+        json_from_api = self.get_data_from_json("api_limit_status.json")
+
+        rate_limit_resource_path = json_from_api['resources'][resource][path]
+        request_window_reset_time = rate_limit_resource_path['reset']
+        requests_remaining_in_window = 0
+        time_delta = 60*10
+        mock_epoch.return_value = request_window_reset_time - time_delta
+        mock_remaining.return_value = (request_window_reset_time,
+                                       requests_remaining_in_window)
+        interval_between_requests1, requests_remaining_in_window1,  request_window_reset_time1 =\
+            get_rate_limit(api_mock, resource, path)
+
+        self.assertEqual(time_delta, interval_between_requests1)
+        self.assertEqual(0, requests_remaining_in_window1)
+        self.assertEqual(request_window_reset_time, request_window_reset_time1)
 
     @patch('tweepy.API')
     def test_get_twitter_user_by_screenname(self, tweepy_mock):
@@ -118,16 +165,18 @@ class MyTest(unittest.TestCase):
     @patch('twitter.twitterAPI.User')
     @patch('twitter.twitterAPI.get_bulk_users_by_ids')
     @patch('tweepy.API')
-    def test_get_new_followers_user_profiles(self, tweepy_mock, mocked_get_balk, 
-                                       user):
-
-        user.objects.return_value.get.return_value = MongoUser(followers_ids = range(1,201))
-        user.objects.return_value.scalar.return_value = range(1,101)
+    def test_get_new_followers_user_profiles(self, tweepy_mock,
+                                             mocked_get_balk,
+                                             user):
+        user.objects.return_value.get.return_value =\
+            MongoUser(followers_ids=range(1, 201))
+        user.objects.return_value.scalar.return_value = range(1, 101)
         get_new_followers_user_profiles(tweepy_mock, "wiz")
 
         user.objects.return_value.get.assert_called_with()
         user.objects.return_value.scalar.assert_called_with("user_id")
-        mocked_get_balk.assert_called_once_with(tweepy_mock, range(101,201),100)
+        mocked_get_balk.assert_called_once_with(tweepy_mock,
+                                                range(101, 201), 100)
 
     @patch('twitter.twitterAPI.get_cursor_twitter_rate_limit')
     @patch('tweepy.Cursor')
@@ -139,63 +188,43 @@ class MyTest(unittest.TestCase):
                                                   tweepy_cursor,
                                                   mock_get_rate_limit):
 
-        mock_get_rate_limit.return_value = (1,2,3)
-        tweepy_cursor.return_value.pages.return_value =(range(1,11), range(11,21), range(21,31))
+        mock_get_rate_limit.return_value = (1, 2, 3)
+        tweepy_cursor.return_value.pages.return_value = (range(1, 11),
+                                                         range(11, 21),
+                                                         range(21, 31))
         screen_name = "Wiz"
         ids, requests = get_followers_by_screen_name(mock_api, screen_name)
 
-        mock_get_rate_limit.assert_called_once_with(mock_api,screen_name,5000)
+        mock_get_rate_limit.assert_called_once_with(mock_api, screen_name,
+                                                    5000)
 
-        self.assertEqual(ids,range(1,31))
+        self.assertEqual(ids, range(1, 31))
         self.assertEqual(requests, 3)
         self.assertEqual(mock_logger.info.call_count, 6)
-
-
 
     @patch('twitter.twitterAPI.get_cursor_twitter_rate_limit')
     @patch('tweepy.Cursor')
     @patch('tweepy.API')
     @patch('twitter.twitterAPI.logger')
     def test_get_followers_by_screen_name_error(self,
-                                                  mock_logger,
-                                                  mock_api,
-                                                  tweepy_cursor,
-                                                  mock_get_rate_limit):
+                                                mock_logger,
+                                                mock_api,
+                                                tweepy_cursor,
+                                                mock_get_rate_limit):
 
-        mock_get_rate_limit.return_value = (1,2,3)
+        mock_get_rate_limit.return_value = (1, 2, 3)
         error_msg = "Could not authenticate you"
         resp = "32"
-        tweepy_cursor.return_value.pages.side_effect = TweepError(error_msg, resp)
+        tweepy_cursor.return_value.pages.side_effect = TweepError(error_msg,
+                                                                  resp)
         screen_name = "Wiz"
         ids, requests = get_followers_by_screen_name(mock_api, screen_name)
 
-        mock_get_rate_limit.assert_called_once_with(mock_api,screen_name,5000)
-
-        self.assertEqual(ids,[])
+        mock_get_rate_limit.assert_called_once_with(mock_api, screen_name,
+                                                    5000)
+        self.assertEqual(ids, [])
         self.assertEqual(requests, 0)
         mock_logger.error.assert_called_with('Could not authenticate you')
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

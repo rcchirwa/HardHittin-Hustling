@@ -120,6 +120,7 @@ def get_twitter_user_followers_count(api, screen_name):
         logger.error(str(e))
         User.flag_suspect_profile(screen_name)
 
+
 def get_twitter_users_by_ids(api, ids):
     return api.lookup_users(user_ids=ids)
 
@@ -141,10 +142,12 @@ def get_bulk_users_by_ids(api, ids, batch_size=100):
         users = get_twitter_users_by_ids(api, chunked_ids)
         yield users
 
+
 def get_new_followers_user_profiles(api, user_screen_name):
     users_followers = User.objects(screen_name=user_screen_name).get()
     user_ids = User.objects().scalar('user_id')
-    ids_to_populate = list(set(users_followers.followers_ids).difference(user_ids))
+    ids_to_populate = set(users_followers.followers_ids).difference(user_ids)
+    ids_to_populate = list(ids_to_populate)
 
     for user in get_bulk_users_by_ids(api, ids_to_populate, 100):
         User.bulk_create_and_save_users_from_api_reponse(user)
