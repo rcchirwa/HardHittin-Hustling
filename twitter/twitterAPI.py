@@ -79,10 +79,10 @@ def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
         #  5000 count returned
         tweepy_cursor = tweepy.Cursor(api.followers_ids,
                                       screen_name=screen_name)
+
         for index, page in enumerate(tweepy_cursor.pages(), start=1):
             logger.info('extracting page %s of %s' % (index, iterations))
             extracted_user_ids.extend(page)
-            logger.info('extracted page %s of %s' % (index, iterations))
             requested_used = index
 
             #  do not do last one because no need to wait

@@ -7,7 +7,8 @@ from twitter.twitterAPI import (get_twitter_user_by_screenname,
                         get_authentication,
                         get_epochalypse_now,
                         get_api_reset_time_and_requests_remaining,
-                        get_new_followers_user_profiles)
+                        get_new_followers_user_profiles,
+                        get_followers_by_screen_name)
 #import tweepy
 import unittest
 import pickle
@@ -16,7 +17,7 @@ import json
 import time
 from mock import patch, mock_open, MagicMock
 from twitter.model import User as MongoUser
-
+from tweepy.error import TweepError
 
 class MyTest(unittest.TestCase):
     def get_data_from_json(self, file_name):
@@ -128,6 +129,73 @@ class MyTest(unittest.TestCase):
         user.objects.return_value.scalar.assert_called_with("user_id")
         mocked_get_balk.assert_called_once_with(tweepy_mock, range(101,201),100)
 
+    @patch('twitter.twitterAPI.get_cursor_twitter_rate_limit')
+    @patch('tweepy.Cursor')
+    @patch('tweepy.API')
+    @patch('twitter.twitterAPI.logger')
+    def test_get_followers_by_screen_name_success(self,
+                                                  mock_logger,
+                                                  mock_api,
+                                                  tweepy_cursor,
+                                                  mock_get_rate_limit):
+
+        mock_get_rate_limit.return_value = (1,2,3)
+        tweepy_cursor.return_value.pages.return_value =(range(1,11), range(11,21), range(21,31))
+        screen_name = "Wiz"
+        ids, requests = get_followers_by_screen_name(mock_api, screen_name)
+
+        mock_get_rate_limit.assert_called_once_with(mock_api,screen_name,5000)
+
+        self.assertEqual(ids,range(1,31))
+        self.assertEqual(requests, 3)
+        self.assertEqual(mock_logger.info.call_count, 6)
+
+
+
+    @patch('twitter.twitterAPI.get_cursor_twitter_rate_limit')
+    @patch('tweepy.Cursor')
+    @patch('tweepy.API')
+    @patch('twitter.twitterAPI.logger')
+    def test_get_followers_by_screen_name_error(self,
+                                                  mock_logger,
+                                                  mock_api,
+                                                  tweepy_cursor,
+                                                  mock_get_rate_limit):
+
+        mock_get_rate_limit.return_value = (1,2,3)
+        error_msg = "Could not authenticate you"
+        resp = "32"
+        tweepy_cursor.return_value.pages.side_effect = TweepError(error_msg, resp)
+        screen_name = "Wiz"
+        ids, requests = get_followers_by_screen_name(mock_api, screen_name)
+
+        mock_get_rate_limit.assert_called_once_with(mock_api,screen_name,5000)
+
+        self.assertEqual(ids,[])
+        self.assertEqual(requests, 0)
+        mock_logger.error.assert_called_with('Could not authenticate you')
 
 if __name__ == '__main__':
     unittest.main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
