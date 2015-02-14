@@ -1,5 +1,6 @@
 import time
 import datetime
+import math
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +58,7 @@ def get_cursor_twitter_rate_limit(api, screen_name, cursor_size):
     multiple_iterations = False
     api_followers_count = get_twitter_user_followers_count(api, screen_name)
 
-    iterations = api_followers_count/cursor_size + 1
+    iterations = math.ceil(api_followers_count/(cursor_size * 1.0))
     sleep_time = 0
 
     if iterations > 1:

@@ -9,7 +9,8 @@ from twitter.twitterAPI import (get_twitter_user_by_screenname,
                                 get_api_reset_time_and_requests_remaining,
                                 get_new_followers_user_profiles,
                                 get_followers_by_screen_name,
-                                get_rate_limit)
+                                get_rate_limit,
+                                get_cursor_twitter_rate_limit)
 import unittest
 import pickle
 import os
@@ -225,6 +226,59 @@ class MyTest(unittest.TestCase):
         self.assertEqual(ids, [])
         self.assertEqual(requests, 0)
         mock_logger.error.assert_called_with('Could not authenticate you')
+
+    @patch('twitter.twitterAPI.get_rate_limit')
+    @patch('twitter.twitterAPI.get_twitter_user_followers_count')
+    @patch('tweepy.API')
+    def test_get_cursor_twitter_rate_limit(self, mock_api,
+                                           mock_user_follower_count,
+                                           mock_get_rate_limit):
+
+        cursor_size = 5000
+        screen_name = 'Wiz'
+
+        mock_user_follower_count.return_value = 20000
+        mock_get_rate_limit.return_value = (60, None, None)
+
+        iterations, multiple_iterations, sleep_time =\
+            get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          cursor_size)
+
+        self.assertEqual(iterations, 4)
+        self.assertTrue(multiple_iterations)
+        self.assertEqual(sleep_time, 60)
+
+        mock_user_follower_count.return_value = 12500
+        mock_get_rate_limit.return_value = (84, None, None)
+
+        iterations, multiple_iterations, sleep_time =\
+            get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          cursor_size)
+
+        self.assertEqual(iterations, 3)
+        self.assertTrue(multiple_iterations)
+        self.assertEqual(sleep_time, 84)
+
+    @patch('twitter.twitterAPI.get_rate_limit')
+    @patch('twitter.twitterAPI.get_twitter_user_followers_count')
+    @patch('tweepy.API')
+    def test_get_cursor_twitter_rate_limit_one_iteration(self,
+                                                         mock_api,
+                                                         mock_follower_count,
+                                                         mock_get_rate_limit):
+        cursor_size = 5000
+        screen_name = 'Wiz'
+
+        mock_follower_count.return_value = 1234
+        mock_get_rate_limit.return_value = (60, None, None)
+
+        iterations, multiple_iterations, sleep_time =\
+            get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          cursor_size)
+
+        self.assertEqual(iterations, 1)
+        self.assertFalse(multiple_iterations)
+        self.assertEqual(sleep_time, 0)
 
 if __name__ == '__main__':
     unittest.main()
