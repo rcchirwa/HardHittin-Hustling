@@ -6,7 +6,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import datetime
-connect('amanzi')
 
 
 class User(Document):
@@ -65,7 +64,6 @@ class User(Document):
     def is_suspect_profile(cls, screen_name):
         identified_user = cls.objects(screen_name=screen_name).first()
         return identified_user.suspect_profile
-
 
     @classmethod
     def create_user_profile_from_api_response(cls, twitter_user):
