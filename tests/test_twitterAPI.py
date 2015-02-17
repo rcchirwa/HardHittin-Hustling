@@ -193,10 +193,14 @@ class MyTest(unittest.TestCase):
         tweepy_cursor.return_value.pages.return_value = (range(1, 11),
                                                          range(11, 21),
                                                          range(21, 31))
+
+        resource = 'followers'
+        path = '/followers/ids'
         screen_name = "Wiz"
         ids, requests = get_followers_by_screen_name(mock_api, screen_name)
 
         mock_get_rate_limit.assert_called_once_with(mock_api, screen_name,
+                                                    resource, path,
                                                     5000)
 
         self.assertEqual(ids, range(1, 31))
@@ -218,10 +222,13 @@ class MyTest(unittest.TestCase):
         resp = "32"
         tweepy_cursor.return_value.pages.side_effect = TweepError(error_msg,
                                                                   resp)
+        resource = 'followers'
+        path = '/followers/ids'
         screen_name = "Wiz"
         ids, requests = get_followers_by_screen_name(mock_api, screen_name)
 
         mock_get_rate_limit.assert_called_once_with(mock_api, screen_name,
+                                                    resource, path,
                                                     5000)
         self.assertEqual(ids, [])
         self.assertEqual(requests, 0)
@@ -234,6 +241,8 @@ class MyTest(unittest.TestCase):
                                            mock_user_follower_count,
                                            mock_get_rate_limit):
 
+        resource = 'followers'
+        path = '/followers/ids'
         cursor_size = 5000
         screen_name = 'Wiz'
 
@@ -242,6 +251,7 @@ class MyTest(unittest.TestCase):
 
         iterations, multiple_iterations, sleep_time =\
             get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          resource, path,
                                           cursor_size)
 
         self.assertEqual(iterations, 4)
@@ -253,6 +263,7 @@ class MyTest(unittest.TestCase):
 
         iterations, multiple_iterations, sleep_time =\
             get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          resource, path,
                                           cursor_size)
 
         self.assertEqual(iterations, 3)
@@ -266,6 +277,8 @@ class MyTest(unittest.TestCase):
                                                          mock_api,
                                                          mock_follower_count,
                                                          mock_get_rate_limit):
+        resource = 'followers'
+        path = '/followers/ids'
         cursor_size = 5000
         screen_name = 'Wiz'
 
@@ -274,6 +287,7 @@ class MyTest(unittest.TestCase):
 
         iterations, multiple_iterations, sleep_time =\
             get_cursor_twitter_rate_limit(mock_api, screen_name,
+                                          resource, path,
                                           cursor_size)
 
         self.assertEqual(iterations, 1)

@@ -54,7 +54,8 @@ def get_rate_limit(api, resource, path):
             requests_remaining_in_window, request_window_reset_time)
 
 
-def get_cursor_twitter_rate_limit(api, screen_name, cursor_size):
+def get_cursor_twitter_rate_limit(api, screen_name, resource, path,
+                                  cursor_size):
     multiple_iterations = False
     api_followers_count = get_twitter_user_followers_count(api, screen_name)
 
@@ -62,7 +63,7 @@ def get_cursor_twitter_rate_limit(api, screen_name, cursor_size):
     sleep_time = 0
 
     if iterations > 1:
-        sleep_time, _, _ = get_rate_limit(api, 'followers', '/followers/ids')
+        sleep_time, _, _ = get_rate_limit(api, resource, path)
         multiple_iterations = True
 
     return iterations, multiple_iterations, sleep_time
@@ -73,8 +74,12 @@ def get_followers_by_screen_name(api, screen_name, cursor_size=5000):
     extracted_user_ids = []
     requested_used = 0
 
+    resource = 'followers'
+    path = '/followers/ids'
+
     iterations, multiple_iterations, sleep_time =\
-        get_cursor_twitter_rate_limit(api, screen_name, cursor_size)
+        get_cursor_twitter_rate_limit(api, screen_name, resource,
+                                      path, cursor_size)
 
     try:
         #  5000 count returned
