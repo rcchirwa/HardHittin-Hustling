@@ -2,7 +2,7 @@
 import time
 from mongoengine.connection import connect, disconnect
 
-from twitter.api_keys import twitter_keys
+from settings import twitter_keys, mongodb_name
 from twitter.model import User
 from twitter.twitterAPI import (get_bulk_users_by_ids,
                                 get_rate_limit,
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 try:
-    connect('amanzi')
+    connect(mongodb_name['prod_db'])
     api = get_authentication(twitter_keys)
 
     screen_name = "HardHittin508"
@@ -56,6 +56,8 @@ try:
     # lets just do a batch of 60 for now
     for index, user in enumerate(no_followers[:60], start=1):
         epochalpse_now = int(time.time())
+
+
         # Gather the various parameters from twiiter so we avoid rate limits
         if (request_accumulator == requests_remaining) or \
            (epochalpse_now > next_reset_epoch):
